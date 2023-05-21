@@ -132,7 +132,7 @@ def main():
 
     guess = guesscol.text_input('guess:', )
     _, c1, c2, c3, _ = guesscol.columns([10, 1,1,1, 10])
-
+    guess = guess.lower()
 
     def redraw_letters():
         draw_letters(st.session_state['letters'], c1, c2, c3)
