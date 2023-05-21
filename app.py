@@ -46,26 +46,42 @@ def pangram_words(word_list, letter_list):
     return pangram_words
 
 def draw_letters(letters, c1, c2, c3):
-    letters = [l.upper() for l in letters]
-    c1.write('')
-    c2.write(letters[2])
-    c3.write('')
-    c3.write()
 
-    c1.write(letters[1])
-    c3.write(letters[3])
-    c2.markdown(
-        '<span style="color:yellow">'+letters[0]+'</span>',    unsafe_allow_html=True    
-        )
-    c1.write(letters[4])
-    c3.write(letters[5])
-    c2.write(letters[6])
+    if not st.session_state.get('is_mobile', False):
+        fsizze = '55'
+        sizze = '85'
+        bcolor = '#B9B9B9'
+        prefix = f'<span style="opacity:95%; color: yellow; background-color: {bcolor}; font-size: {fsizze}px; display: inline-block; width: {sizze}px; height: {sizze}px; border-radius: 80%; text-align: center; line-height: {sizze}px;">'
+        bl_prefix = prefix.replace('yellow', 'black')
+
+        letters = [l.upper() for l in letters]
+        c1.write('')
+        c1.write('')
+        c2.markdown(bl_prefix+letters[2]+'</span>', unsafe_allow_html=True)
+        c3.write('')
+        c3.write('')
+        c3.write()
+
+        c1.markdown(bl_prefix+letters[1]+'</span>', unsafe_allow_html=True)
+        c3.markdown(bl_prefix+letters[3]+'</span>', unsafe_allow_html=True)
+        c2.markdown(prefix+letters[0]+'</span>', unsafe_allow_html=True)
+
+        c1.markdown(bl_prefix+letters[4]+'</span>', unsafe_allow_html=True)
+        c3.markdown(bl_prefix+letters[5]+'</span>', unsafe_allow_html=True)
+        c2.markdown(bl_prefix+letters[6]+'</span>', unsafe_allow_html=True)
+    else:
+        letters = [l.upper() for l in letters]
+        fsizze = '85'
+        sizze = '200'
+        prefix = f'<span style="opacity:80%; color: yellow; background-color: #B9B9B9; font-size: {fsizze}px; display: inline-block;">'
+        bl_prefix = prefix.replace('yellow', '').replace('#B9B9B9', '')
+        c1.markdown(prefix+' '.join(letters[0])+'</span>   ' + bl_prefix+' '.join(letters[1:])+'</span>', unsafe_allow_html=True)
 
 
 def find_game():
     lowercase_letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
 
-    lls = list(set(np.random.random_integers(0, len(lowercase_letters)-1, 7)))
+    lls = list(set(np.random.randint(0, len(lowercase_letters)-1, 7)))
     count = 0
     while len(lls)<7:
         lls += [count % 26]
@@ -81,12 +97,16 @@ def find_game():
 
     return letters, answers, supwords
 
-
+def flip_mobile():
+    if 'is_mobile' not in st.session_state:
+        st.session_state['is_mobile'] = True
+    st.session_state['is_mobile'] = not st.session_state['is_mobile']
 
 def reset_state():
     if 'in_a_game' not in st.session_state:
         letters, words, pangrams = find_game()
         st.session_state['in_a_game'] = True
+        st.session_state['is_mobile'] = False
 
         if 'letters' not in st.session_state:
             st.session_state['letters'] = letters
@@ -114,10 +134,13 @@ def main():
     if b1.button('New Pangram'):
         st.cache_data.clear()
         st.session_state.clear()
-        while 'pangrams' not in st.session_state or len(st.session_state['pangrams'])<1:
+        cc = 0
+        maxc = 25
+        while 'pangrams' not in st.session_state or len(st.session_state['pangrams'])<1 and cc<maxc:
             st.session_state.clear()
             reset_state()
-            print(st.session_state['pangrams'])
+            cc+=1
+            # print(st.session_state['pangrams'])
     if b2.button('New Game'):
         st.cache_data.clear()
         st.session_state.clear()
@@ -131,21 +154,29 @@ def main():
     # st.sidebar.json(st.session_state, expanded=False)
 
     guess = guesscol.text_input('guess:', )
-    _, c1, c2, c3, _ = guesscol.columns([10, 1,1,1, 10])
+    warningbox = guesscol.container()
+    warningbox.write('\n')
+
     guess = guess.lower()
+    st.sidebar.button('Letter Resize', on_click=flip_mobile)
+    if st.session_state['is_mobile']:
+        c1, = guesscol.columns(1, gap='large')
+        # c1.button('o', on_click=flip_mobile)
+        c0, c2, c3 = guesscol.columns(3)
+    else:
+        c0, c1, c2, c3, _ = guesscol.columns([1,1,1,1, 1], gap='large')
+    
+
 
     def redraw_letters():
         draw_letters(st.session_state['letters'], c1, c2, c3)
-
-
+        
     # draw_letters(st.session_state['letters'], c1, c2, c3)
     redraw_letters()
     # e1,e2,e3 = guesscol.columns([1,1,1])
     # e1.button('delete')
     # guesscol.button('🔄', use_container_width=True, on_click=redraw_letters)
     # e3.button('enter', help='mommy')
-    warningbox = guesscol.container()
-    warningbox.write('')
 
 
     # aw, sw = st.sidebar.columns(2)
@@ -153,6 +184,9 @@ def main():
         st.json(st.session_state['words'], expanded=True)
     with st.sidebar.expander('pangrams: ' + str(len(st.session_state['pangrams']))):
         st.json(st.session_state['pangrams'], expanded=True)
+
+    if len(st.session_state['words']) < 4:
+        warningbox.warning('not many words: '+str(len(st.session_state['words'])))
 
     is_long_enough = len(guess) >= 4
     is_word = guess in st.session_state['words']
@@ -172,22 +206,20 @@ def main():
         elif not is_long_enough:
             warningbox.warning('word not long enough')
         elif not contains_middle:
-            warningbox.warning('word doesnt contain: "' + st.session_state['letters'][0]+'"')
+            warningbox.warning('word must include the center letter: "' + st.session_state['letters'][0]+'"')
         elif not is_word:
             non_overlap = set(guess) - set(guess).intersection(st.session_state['letters'])
             if non_overlap:
-                warningbox.warning('contains excess letters: ' +str(non_overlap))
+                warningbox.warning(f'"{guess}" contains excess letters: ' +str(non_overlap))
             else:
-                warningbox.warning('not valid dictionary word')
+                warningbox.warning(f'"{guess}" is not a valid dictionary word')
         elif not not_prev_guess:
             warningbox.warning('you already found this word')
 
     current_score = st.session_state['score']
 
     level = 'Beginner'
-    if current_score < 4 and current_score > 1:
-        level = 'Meh'
-    elif current_score > 100:
+    if current_score > 100:
         level = 'Genius'
     elif current_score > 88:
         level = 'Amazing'
@@ -199,6 +231,8 @@ def main():
         level = 'Good'
     elif current_score > 10:
         level = 'Moving Up'
+    elif current_score > 4:
+        level = 'Meh'
 
 
 
@@ -208,7 +242,8 @@ def main():
                   help=RULES_STR)
     num_found = len(st.session_state['answers'])
     if num_found:
-        anscol.write('You found '+ str(num_found) + ' words!')
+        word_plural = 'word' if num_found <= 1 else 'words'
+        anscol.write(f'You found {num_found} {word_plural}!')
         count = 0
         ff = st.session_state['answers']
         ff = list(reversed(ff))
