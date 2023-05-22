@@ -103,7 +103,7 @@ def find_game(man_letters=[]):
 
 def flip_mobile():
     if 'is_mobile' not in st.session_state:
-        st.session_state['is_mobile'] = True
+        st.session_state['is_mobile'] = False
     st.session_state['is_mobile'] = not st.session_state['is_mobile']
 
 def reset_state(man_letters=[]):
@@ -135,14 +135,15 @@ def main():
         page_icon="🐝"
     )
     man_letters = st.sidebar.text_input('manual override letters:', '')
-    man_letters_proc = man_letters.split(' ')
-    if len(set(man_letters_proc)) == 7:
+    man_letters_proc = [x.lower() for x in man_letters.split(' ')]
+    if len(set(man_letters_proc)) == 7 and st.session_state['letters'] != man_letters_proc:
         st.cache_data.clear()
         st.session_state.clear()
         reset_state(man_letters_proc)
 
     b1, b2 = st.sidebar.columns(2)
     if b1.button('New Pangram'):
+        man_letters = ''
         was_mobile = st.session_state.get('is_mobile', False)
         st.cache_data.clear()
         st.session_state.clear()
@@ -155,6 +156,7 @@ def main():
             cc+=1
             # print(st.session_state['pangrams'])
     if b2.button('New Game'):
+        man_letters = ''
         was_mobile = st.session_state.get('is_mobile', False)
         st.cache_data.clear()
         st.session_state.clear()
