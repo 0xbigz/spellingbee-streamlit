@@ -132,6 +132,7 @@ def main():
     )
     b1, b2 = st.sidebar.columns(2)
     if b1.button('New Pangram'):
+        was_mobile = st.session_state.get('is_mobile', False)
         st.cache_data.clear()
         st.session_state.clear()
         cc = 0
@@ -139,12 +140,16 @@ def main():
         while 'pangrams' not in st.session_state or len(st.session_state['pangrams'])<1 and cc<maxc:
             st.session_state.clear()
             reset_state()
+            st.session_state['is_mobile'] = was_mobile
             cc+=1
             # print(st.session_state['pangrams'])
     if b2.button('New Game'):
+        was_mobile = st.session_state.get('is_mobile', False)
         st.cache_data.clear()
         st.session_state.clear()
         reset_state()
+        st.session_state['is_mobile'] = was_mobile
+
     
     st.header('Spelling Bee 🐝')
     reset_state()
@@ -159,7 +164,7 @@ def main():
 
     guess = guess.lower()
     st.sidebar.button('Letter Resize', on_click=flip_mobile)
-    if st.session_state['is_mobile']:
+    if st.session_state.get('is_mobile', False):
         c1, = guesscol.columns(1, gap='large')
         # c1.button('o', on_click=flip_mobile)
         c0, c2, c3 = guesscol.columns(3)
