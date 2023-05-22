@@ -71,7 +71,7 @@ def draw_letters(letters, c1, c2, c3):
         c2.markdown(bl_prefix+letters[6]+'</span>', unsafe_allow_html=True)
     else:
         letters = [l.upper() for l in letters]
-        fsizze = '85'
+        fsizze = '80'
         sizze = '200'
         prefix = f'<span style="opacity:80%; color: yellow; background-color: #B9B9B9; font-size: {fsizze}px; display: inline-block;">'
         bl_prefix = prefix.replace('yellow', '').replace('#B9B9B9', '')
