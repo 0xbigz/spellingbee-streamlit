@@ -78,7 +78,7 @@ def draw_letters(letters, c1, c2, c3):
         c1.markdown(prefix+' '.join(letters[0])+'</span>   ' + bl_prefix+' '.join(letters[1:])+'</span>', unsafe_allow_html=True)
 
 
-def find_game():
+def find_game(man_letters=[]):
     lowercase_letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
 
     lls = list(set(np.random.randint(0, len(lowercase_letters)-1, 7)))
@@ -89,6 +89,10 @@ def find_game():
         count+=1
 
     letters = list(set([lowercase_letters[x] for x in lls]))
+    if man_letters and len([x.lower() for x in man_letters if x.strip()!='' ])==7:
+        print(man_letters)
+        letters = [x.lower() for x in man_letters if x.strip()!='' ]
+        st.sidebar.warning(f'manual override: {" ".join(letters)}')
 
     words = load_word_list()
 
@@ -102,9 +106,9 @@ def flip_mobile():
         st.session_state['is_mobile'] = True
     st.session_state['is_mobile'] = not st.session_state['is_mobile']
 
-def reset_state():
+def reset_state(man_letters=[]):
     if 'in_a_game' not in st.session_state:
-        letters, words, pangrams = find_game()
+        letters, words, pangrams = find_game(man_letters)
         st.session_state['in_a_game'] = True
         st.session_state['is_mobile'] = False
 
@@ -130,6 +134,13 @@ def main():
         # layout='wide',
         page_icon="🐝"
     )
+    man_letters = st.sidebar.text_input('manual override letters:', '')
+    man_letters_proc = man_letters.split(' ')
+    if len(set(man_letters_proc)) == 7:
+        st.cache_data.clear()
+        st.session_state.clear()
+        reset_state(man_letters_proc)
+
     b1, b2 = st.sidebar.columns(2)
     if b1.button('New Pangram'):
         was_mobile = st.session_state.get('is_mobile', False)
