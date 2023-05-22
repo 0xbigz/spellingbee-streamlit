@@ -1,7 +1,7 @@
 import streamlit as st
 import numpy as np
-
-
+import datetime
+import random
 RULES_STR = """
 
 Words must contain at least 4 letters.\n
@@ -12,11 +12,40 @@ Longer words earn 1 point per letter. \n
 Each puzzle includes at least one “pangram” which uses every letter. These are worth 7 extra points! \n
 """
 
-st.cache(persist=True)
+def on_the_hour_ts():
+    # Get the current UTC time
+    current_time = datetime.datetime.utcnow()
+
+    # Round down to the closest hour
+    rounded_time = current_time.replace(minute=0, second=0, microsecond=0)
+
+    # Convert the rounded time to a Unix timestamp
+    timestamp = int(rounded_time.timestamp())
+
+    return (timestamp)
+
+@st.cache_data(persist=True)
 def load_word_list():
     return np.loadtxt('words_alpha.txt', dtype=str)
 
-st.cache(persist=True)
+@st.cache_data(ttl=3600)
+def load_hourly_letters(ts):
+    tt = ts
+    man_letters = ''
+    was_mobile = st.session_state.get('is_mobile', False)
+    # st.cache_data.clear()
+    st.session_state.clear()
+    cc = 0
+    maxc = 125
+    while 'pangrams' not in st.session_state or len(st.session_state['pangrams'])<1 and cc<maxc:
+        st.session_state.clear()
+        reset_state(is_hourly_game=cc+1)
+        st.session_state['is_mobile'] = was_mobile
+        cc+=1
+    man_letters = st.session_state['letters']
+    return man_letters
+
+# @st.cache_data(persist=True)
 def filter_words(word_list, letter_list):
     # Convert the letter_list to lower case for case insensitivity
     letter_set = set([letter.lower() for letter in letter_list])
@@ -78,17 +107,24 @@ def draw_letters(letters, c1, c2, c3):
         c1.markdown(prefix+' '.join(letters[0])+'</span>   ' + bl_prefix+' '.join(letters[1:])+'</span>', unsafe_allow_html=True)
 
 
-def find_game(man_letters=[]):
+def find_game(man_letters=[], is_hourly_game=0):
     lowercase_letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+    
+    if is_hourly_game:
+        random.seed(on_the_hour_ts()+is_hourly_game)
+        letters = random.sample(lowercase_letters, 7)
+        # st.warning(letters)
+    else:
+        lls = list(set(np.random.randint(0, len(lowercase_letters)-1, 7)))
 
-    lls = list(set(np.random.randint(0, len(lowercase_letters)-1, 7)))
-    count = 0
-    while len(lls)<7:
-        lls += [count % 26]
-        lls = list(set(lls))
-        count+=1
+        count = 0
+        while len(lls)<7:
+            lls += [count % 26]
+            lls = list(set(lls))
+            count+=1
 
-    letters = list(set([lowercase_letters[x] for x in lls]))
+        letters = list(set([lowercase_letters[x] for x in lls]))
+
     if man_letters and len([x.lower() for x in man_letters if x.strip()!='' ])==7:
         print(man_letters)
         letters = [x.lower() for x in man_letters if x.strip()!='' ]
@@ -106,9 +142,9 @@ def flip_mobile():
         st.session_state['is_mobile'] = False
     st.session_state['is_mobile'] = not st.session_state['is_mobile']
 
-def reset_state(man_letters=[]):
+def reset_state(man_letters=[], is_hourly_game=False):
     if 'in_a_game' not in st.session_state:
-        letters, words, pangrams = find_game(man_letters)
+        letters, words, pangrams = find_game(man_letters, is_hourly_game)
         st.session_state['in_a_game'] = True
         st.session_state['is_mobile'] = False
 
@@ -137,7 +173,7 @@ def main():
     man_letters = st.sidebar.text_input('manual override letters:', '')
     man_letters_proc = [x.lower() for x in man_letters.split(' ')]
     if len(set(man_letters_proc)) == 7 and st.session_state['letters'] != man_letters_proc:
-        st.cache_data.clear()
+        # st.cache_data.clear()
         st.session_state.clear()
         reset_state(man_letters_proc)
 
@@ -145,10 +181,10 @@ def main():
     if b1.button('New Pangram'):
         man_letters = ''
         was_mobile = st.session_state.get('is_mobile', False)
-        st.cache_data.clear()
+        # st.cache_data.clear()
         st.session_state.clear()
         cc = 0
-        maxc = 25
+        maxc = 55
         while 'pangrams' not in st.session_state or len(st.session_state['pangrams'])<1 and cc<maxc:
             st.session_state.clear()
             reset_state()
@@ -158,7 +194,7 @@ def main():
     if b2.button('New Game'):
         man_letters = ''
         was_mobile = st.session_state.get('is_mobile', False)
-        st.cache_data.clear()
+        # st.cache_data.clear()
         st.session_state.clear()
         reset_state()
         st.session_state['is_mobile'] = was_mobile
@@ -176,7 +212,8 @@ def main():
     warningbox.write('\n')
 
     guess = guess.lower()
-    st.sidebar.button('Letter Resize', on_click=flip_mobile)
+    D1, D2 = st.sidebar.columns(2)
+    D1.button('Letter Resize', on_click=flip_mobile)
     if st.session_state.get('is_mobile', False):
         c1, = guesscol.columns(1, gap='large')
         # c1.button('o', on_click=flip_mobile)
@@ -184,7 +221,11 @@ def main():
     else:
         c0, c1, c2, c3, _ = guesscol.columns([1,1,1,1, 1], gap='large')
     
-
+    if D2.button('Hourly Game'):
+        hourly_letters = load_hourly_letters(on_the_hour_ts())
+        # st.cache_data.clear()
+        st.session_state.clear()
+        reset_state(hourly_letters)
 
     def redraw_letters():
         draw_letters(st.session_state['letters'], c1, c2, c3)
